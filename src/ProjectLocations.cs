@@ -102,14 +102,15 @@ namespace Appalachia.CI.Integration
             }
 
             var basePath = GetAssetsDirectoryPath();
-            var thirdParty = Path.Combine(basePath, "Third-Party", partyName).CleanFullPath();
-
-            _thirdPartyAssetDirectoryPath.Add(partyName, thirdParty);
+            var thirdPartyPath = Path.Combine(basePath, "Third-Party", partyName).CleanFullPath();
+            var thirdPartyInfo = GetThirdPartyAssetsDirectoryInfo(partyName);
             
-            return thirdParty;
+            _thirdPartyAssetDirectoryPath.Add(partyName, thirdPartyPath);
+            
+            return thirdPartyPath;
         }
 
-        public static DirectoryInfo GetThirdyPartAssetsDirectoryInfo(string partyName)
+        public static DirectoryInfo GetThirdPartyAssetsDirectoryInfo(string partyName)
         {
             if (_thirdPartyAssetDirectoryInfo == null)
             {
@@ -126,6 +127,11 @@ namespace Appalachia.CI.Integration
             var thirdPartyInfo = new DirectoryInfo(thirdParty);
             _thirdPartyAssetDirectoryInfo.Add(partyName, thirdPartyInfo);
 
+            if (!thirdPartyInfo.Exists)
+            {
+                thirdPartyInfo.Create();
+            }
+            
             return thirdPartyInfo;
         }
 
