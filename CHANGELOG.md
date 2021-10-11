@@ -12,6 +12,12 @@
 ## Releasing
 | Hash | Date | Author | Changes |
 |------|------|--------|---------|
+| be63e2def9b983d74ee0affa5cd703259abd288c | 2021-10-11 | Chris Schubert | Adding in relative path methods |
+
+
+ ## Tag: `v0.1.3`
+| Hash | Date | Author | Changes |
+|------|------|--------|---------|
 | 1e451099b7a38ac2ff403a338348c87290a78288 | 2021-10-11 | Chris Schubert | Fixing recursion issue in directory creation for third parties |
 
 
