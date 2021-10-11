@@ -18,6 +18,10 @@ namespace Appalachia.CI.Integration
         private static string _projectDirectoryPath;
         private static DirectoryInfo _projectDirectoryInfo;
 
+        private static string _assetDirectoryPathRelative;
+        private static Dictionary<string, string> _thirdPartyAssetDirectoryPathRelative;
+        private static string _projectDirectoryPathRelative;
+        
         public static RepositoryDirectoryMetadata GetAssetRepository(string assetPath)
         {
             if (string.IsNullOrWhiteSpace(assetPath))
@@ -149,17 +153,54 @@ namespace Appalachia.CI.Integration
             _projectDirectoryPath = GetAssetsDirectoryPath().Replace("/Assets", string.Empty);
             return _projectDirectoryPath;
         }
-
-        public static DirectoryInfo GetProjectDirectoryInfo()
+        
+        public static string GetAssetsDirectoryPathRelative()
         {
-            if (_projectDirectoryInfo != null)
+            if (_assetDirectoryPathRelative != null)
             {
-                return _projectDirectoryInfo;
+                return _assetDirectoryPathRelative;
             }
 
-            _projectDirectoryInfo = new DirectoryInfo(GetProjectDirectoryPath());
-            return _projectDirectoryInfo;
+            _assetDirectoryPathRelative = "Assets";
+            return _assetDirectoryPathRelative;
         }
+
+        public static string GetThirdPartyAssetsDirectoryPathRelative(string partyName)
+        {
+            if (_thirdPartyAssetDirectoryPathRelative == null)
+            {
+                _thirdPartyAssetDirectoryPathRelative = new Dictionary<string, string>();
+            }
+            
+            if (_thirdPartyAssetDirectoryPathRelative.ContainsKey(partyName))
+            {
+                return _thirdPartyAssetDirectoryPathRelative[partyName];
+            }
+
+            var basePath = GetAssetsDirectoryPathRelative();
+            var thirdPartyPath = Path.Combine(basePath, "Third-Party", partyName).CleanFullPath();
+            var thirdPartyInfo = new DirectoryInfo(thirdPartyPath);
+            if (!thirdPartyInfo.Exists)
+            {
+                thirdPartyInfo.Create();
+            }
+            
+            _thirdPartyAssetDirectoryPathRelative.Add(partyName, thirdPartyPath);
+            
+            return thirdPartyPath;
+        }
+
+        public static string GetProjectDirectoryPathRelative()
+        {
+            if (_projectDirectoryPathRelative != null)
+            {
+                return _projectDirectoryPathRelative;
+            }
+
+            _projectDirectoryPathRelative = string.Empty;
+            return _projectDirectoryPathRelative;
+        }
+
 
 
         public static bool HasSiblingDirectory(
