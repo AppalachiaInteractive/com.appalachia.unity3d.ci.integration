@@ -12,6 +12,12 @@
 ## Releasing
 | Hash | Date | Author | Changes |
 |------|------|--------|---------|
+| 1e451099b7a38ac2ff403a338348c87290a78288 | 2021-10-11 | Chris Schubert | Fixing recursion issue in directory creation for third parties |
+
+
+ ## Tag: `v0.1.2`
+| Hash | Date | Author | Changes |
+|------|------|--------|---------|
 | 97445745845e7d803b696a2552236a01a05491e5 | 2021-10-11 | Chris Schubert | Auto directory creation for third party folders |
 
 
