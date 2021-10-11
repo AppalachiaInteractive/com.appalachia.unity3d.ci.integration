@@ -1,7 +1,7 @@
 {
   "name": "com.appalachia.unity3d.ci.integration",
   "displayName": "Appalachia.CI.Integration for Unity3D",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "unity": "2020.3",
   "description": "Simple utilties to support integrating third-party assets into Appalachia projects.",
   "keywords": [
