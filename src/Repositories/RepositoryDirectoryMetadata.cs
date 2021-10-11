@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using Appalachia.CI.Integration.Assemblies;
 
 namespace Appalachia.CI.Integration.Repositories
 {
@@ -21,9 +22,12 @@ namespace Appalachia.CI.Integration.Repositories
         private DirectoryInfo _srcDirectory;
         public JObject packageJson;
         public DirectoryInfo root;
-
+        
+        public List<AssemblyDefinitionMetadata> assemblies;
+        
         private RepositoryDirectoryMetadata()
         {
+            this.assemblies = new List<AssemblyDefinitionMetadata>();
         }
 
         public RepositoryDirectoryMetadata(
@@ -40,6 +44,7 @@ namespace Appalachia.CI.Integration.Repositories
             this.dataDirectory = dataDirectory;
             this.srcDirectory = srcDirectory;
             this.packageJson = packageJson;
+            this.assemblies = new List<AssemblyDefinitionMetadata>();
         }
 
         public DirectoryInfo gitDirectory

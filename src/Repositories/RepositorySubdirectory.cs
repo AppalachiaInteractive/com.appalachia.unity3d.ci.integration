@@ -17,8 +17,6 @@ namespace Appalachia.CI.Integration.Repositories
         public List<Object> instances;
         public RepositoryDirectoryMetadata repository;
         public AssetPathMetadata correctionPath;
-        
-        public List<AssemblyDefinitionMetadata> assemblies;
 
         public bool showInstances;
         public DirectoryInfo directoryInfo;
@@ -31,7 +29,6 @@ namespace Appalachia.CI.Integration.Repositories
             directory = AssetDatabase.LoadAssetAtPath(this.relativePath, type);
             directoryInfo = new DirectoryInfo(this.relativePath);
             this.repository = repository;
-            this.assemblies = new List<AssemblyDefinitionMetadata>();
         }
     }
 }
