@@ -12,6 +12,12 @@
 ## Releasing
 | Hash | Date | Author | Changes |
 |------|------|--------|---------|
+| 81b4e74405e6b064fedb77424c5632d7833fbd6e | 2021-10-11 | Chris Schubert | Adding repository members |
+
+
+ ## Tag: `v0.1.4`
+| Hash | Date | Author | Changes |
+|------|------|--------|---------|
 | be63e2def9b983d74ee0affa5cd703259abd288c | 2021-10-11 | Chris Schubert | Adding in relative path methods |
 
 
