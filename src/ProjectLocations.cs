@@ -103,7 +103,11 @@ namespace Appalachia.CI.Integration
 
             var basePath = GetAssetsDirectoryPath();
             var thirdPartyPath = Path.Combine(basePath, "Third-Party", partyName).CleanFullPath();
-            var thirdPartyInfo = GetThirdPartyAssetsDirectoryInfo(partyName);
+            var thirdPartyInfo = new DirectoryInfo(thirdPartyPath);
+            if (!thirdPartyInfo.Exists)
+            {
+                thirdPartyInfo.Create();
+            }
             
             _thirdPartyAssetDirectoryPath.Add(partyName, thirdPartyPath);
             
