@@ -12,6 +12,11 @@
 ## Releasing
 | Hash | Date | Author | Changes |
 |------|------|--------|---------|
+
+
+ ## Tag: `v0.1.6, origin/main`
+| Hash | Date | Author | Changes |
+|------|------|--------|---------|
 | 9675c4bfe5e9ea2835d9d22eba17036af0c7f0e8 | 2021-10-11 | Chris Schubert | Adding repository assemblies |
 
 
