@@ -8,6 +8,8 @@ namespace Appalachia.CI.Integration
 {
     public static class ProjectLocations
     {
+        public const string ThirdPartyFolder = "Third-Party";
+        public const string ThirdPartyDataFolder = ThirdPartyFolder + "/Data";
         private static Dictionary<string, RepositoryDirectoryMetadata> _assetRepoLookup;
         private static Dictionary<DirectoryInfo, RepositoryDirectoryMetadata> _repoDirectoryLookup;
 
@@ -106,7 +108,7 @@ namespace Appalachia.CI.Integration
             }
 
             var basePath = GetAssetsDirectoryPath();
-            var thirdPartyPath = Path.Combine(basePath, "Third-Party", partyName).CleanFullPath();
+            var thirdPartyPath = Path.Combine(basePath, ThirdPartyDataFolder, partyName).CleanFullPath();
             var thirdPartyInfo = new DirectoryInfo(thirdPartyPath);
             if (!thirdPartyInfo.Exists)
             {
@@ -178,7 +180,7 @@ namespace Appalachia.CI.Integration
             }
 
             var basePath = GetAssetsDirectoryPathRelative();
-            var thirdPartyPath = Path.Combine(basePath, "Third-Party", partyName).CleanFullPath();
+            var thirdPartyPath = Path.Combine(basePath, ThirdPartyDataFolder, partyName).CleanFullPath();
             var thirdPartyInfo = new DirectoryInfo(thirdPartyPath);
             
             if (!thirdPartyInfo.Exists)

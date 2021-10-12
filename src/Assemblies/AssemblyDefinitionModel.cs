@@ -19,5 +19,21 @@ namespace Appalachia.CI.Integration.Assemblies
         public string[] defineConstraints;
         public AssemblyVersionDefineModel[] versionDefines;
         public bool noEngineReferences;
+        public string[] optionalUnityReferences;
+
+        public void CheckBeforeWrite()
+        {
+            name = string.IsNullOrWhiteSpace(name) ? string.Empty : name;
+            rootNamespace = string.IsNullOrWhiteSpace(rootNamespace) ? string.Empty : rootNamespace;
+
+            references ??= new string[0];
+            includePlatforms ??= new string[0];
+            excludePlatforms ??= new string[0];
+            precompiledReferences ??= new string[0];
+            defineConstraints ??= new string[0];
+            optionalUnityReferences ??= new string[0];
+
+            versionDefines ??= new AssemblyVersionDefineModel[0];
+        }
     }
 }

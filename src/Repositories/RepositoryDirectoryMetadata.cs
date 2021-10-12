@@ -2,14 +2,29 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json.Linq;
+using System.Runtime.CompilerServices;
 using Appalachia.CI.Integration.Assemblies;
+using Appalachia.CI.Integration.Extensions;
+using Newtonsoft.Json.Linq;
 
 namespace Appalachia.CI.Integration.Repositories
 {
     [Serializable]
     public class RepositoryDirectoryMetadata : IEquatable<RepositoryDirectoryMetadata>
     {
+        private static Dictionary<string, RepositoryDirectoryMetadata> _instances;
+        
+        private const string GIT = ".git";
+        private const string DATA = "data";
+        private const string SRC = "src";
+        private const string ASSET = "asset";
+        private const string CONFIG = ".config";
+        private const string VERSION = "version";
+        private const string URL = "url";
+        private const string PACKAGEJSON = "package.json";
+
+        public List<AssemblyDefinitionMetadata> assemblies;
+
         private DirectoryInfo _assetsDirectory;
 
         private DirectoryInfo _dataDirectory;
@@ -22,15 +37,13 @@ namespace Appalachia.CI.Integration.Repositories
         private DirectoryInfo _srcDirectory;
         public JObject packageJson;
         public DirectoryInfo root;
-        
-        public List<AssemblyDefinitionMetadata> assemblies;
-        
+
         private RepositoryDirectoryMetadata()
         {
-            this.assemblies = new List<AssemblyDefinitionMetadata>();
+            assemblies = new List<AssemblyDefinitionMetadata>();
         }
 
-        public RepositoryDirectoryMetadata(
+        private RepositoryDirectoryMetadata(
             DirectoryInfo root,
             DirectoryInfo gitDirectory,
             DirectoryInfo assetsDirectory,
@@ -44,9 +57,8 @@ namespace Appalachia.CI.Integration.Repositories
             this.dataDirectory = dataDirectory;
             this.srcDirectory = srcDirectory;
             this.packageJson = packageJson;
-            this.assemblies = new List<AssemblyDefinitionMetadata>();
+            assemblies = new List<AssemblyDefinitionMetadata>();
         }
-
         public DirectoryInfo gitDirectory
         {
             get
@@ -58,7 +70,7 @@ namespace Appalachia.CI.Integration.Repositories
                         return null;
                     }
 
-                    _gitDirectory = new DirectoryInfo(Path.Combine(root.FullName, ".git"));
+                    _gitDirectory = new DirectoryInfo(Path.Combine(root.FullName, GIT));
                 }
 
                 return _gitDirectory;
@@ -77,7 +89,7 @@ namespace Appalachia.CI.Integration.Repositories
                         return null;
                     }
 
-                    _assetsDirectory = new DirectoryInfo(Path.Combine(root.FullName, "assets"));
+                    _assetsDirectory = new DirectoryInfo(Path.Combine(root.FullName, ASSET));
                 }
 
                 return _assetsDirectory;
@@ -96,7 +108,7 @@ namespace Appalachia.CI.Integration.Repositories
                         return null;
                     }
 
-                    _dataDirectory = new DirectoryInfo(Path.Combine(root.FullName, "data"));
+                    _dataDirectory = new DirectoryInfo(Path.Combine(root.FullName, DATA));
                 }
 
                 return _dataDirectory;
@@ -115,7 +127,7 @@ namespace Appalachia.CI.Integration.Repositories
                         return null;
                     }
 
-                    _srcDirectory = new DirectoryInfo(Path.Combine(root.FullName, "src"));
+                    _srcDirectory = new DirectoryInfo(Path.Combine(root.FullName, SRC));
                 }
 
                 return _srcDirectory;
@@ -135,7 +147,7 @@ namespace Appalachia.CI.Integration.Repositories
                     }
 
                     var repoFiles = gitDirectory.GetFiles();
-                    var repoConfig = repoFiles.First(f => f.Name == "config");
+                    var repoConfig = repoFiles.First(f => f.Name == CONFIG);
 
                     var repoConfigStrings = new List<string>();
 
@@ -151,7 +163,7 @@ namespace Appalachia.CI.Integration.Repositories
                     foreach (var repoConfigString in repoConfigStrings)
                     {
                         //url = https://github.com/AppalachiaInteractive/com.appalachia.unity3d.audio.git
-                        if (!repoConfigString.Contains("url"))
+                        if (!repoConfigString.Contains(URL))
                         {
                             continue;
                         }
@@ -189,7 +201,7 @@ namespace Appalachia.CI.Integration.Repositories
 
                 if (_packageVersion == null)
                 {
-                    _packageVersion = packageJson["version"]?.ToString();
+                    _packageVersion = packageJson[VERSION]?.ToString();
                 }
 
                 return _packageVersion;
@@ -269,7 +281,41 @@ namespace Appalachia.CI.Integration.Repositories
         {
             return !Equals(left, right);
         }
+       
 
+        public static RepositoryDirectoryMetadata Create(
+            DirectoryInfo root,
+            DirectoryInfo gitDirectory,
+            DirectoryInfo assetsDirectory,
+            DirectoryInfo dataDirectory,
+            DirectoryInfo srcDirectory,
+            JObject packageJson)
+        {
+            if (_instances == null)
+            {
+                _instances = new Dictionary<string, RepositoryDirectoryMetadata>();
+            }
+
+            if (_instances.ContainsKey(root.FullName))
+            {
+                return _instances[root.FullName];
+            }
+
+            var newInstance = new RepositoryDirectoryMetadata(
+                root,
+                gitDirectory,
+                assetsDirectory,
+                dataDirectory,
+                srcDirectory,
+                packageJson
+            );
+
+            _instances.Add(root.FullName, newInstance);
+
+            return newInstance;
+        }
+
+        
         public static RepositoryDirectoryMetadata FromRootPath(string path)
         {
             var directory = new DirectoryInfo(path);
@@ -278,6 +324,16 @@ namespace Appalachia.CI.Integration.Repositories
 
         public static RepositoryDirectoryMetadata FromRoot(DirectoryInfo directory)
         {
+            if (_instances == null)
+            {
+                _instances = new Dictionary<string, RepositoryDirectoryMetadata>();
+            }
+
+            if (_instances.ContainsKey(directory.FullName))
+            {
+                return _instances[directory.FullName];
+            }
+            
             var childDirectories = directory.GetDirectories();
 
             var foundGit = false;
@@ -287,7 +343,7 @@ namespace Appalachia.CI.Integration.Repositories
             {
                 var childDirectory = childDirectories[childIndex];
 
-                if (childDirectory.Name == ".git")
+                if (childDirectory.Name == GIT)
                 {
                     foundGit = true;
                     git = childDirectory;
@@ -300,23 +356,23 @@ namespace Appalachia.CI.Integration.Repositories
                 return Empty();
             }
 
-            DirectoryInfo assets;
+            DirectoryInfo asset;
             DirectoryInfo data;
             DirectoryInfo src;
 
-            assets = new DirectoryInfo(Path.Combine(directory.FullName, "assets"));
-            data = new DirectoryInfo(Path.Combine(directory.FullName,   "data"));
-            src = new DirectoryInfo(Path.Combine(directory.FullName,    "src"));
+            asset = new DirectoryInfo(Path.Combine(directory.FullName, ASSET));
+            data = new DirectoryInfo(Path.Combine(directory.FullName,  DATA));
+            src = new DirectoryInfo(Path.Combine(directory.FullName,   SRC));
 
             JObject package = null;
 
-            var childFiles = directory.GetFiles("package.json");
+            var childFiles = directory.GetFiles(PACKAGEJSON);
 
             for (var childFileIndex = 0; childFileIndex < childFiles.Length; childFileIndex++)
             {
                 var childFile = childFiles[childFileIndex];
 
-                if (childFile.Name == "package.json")
+                if (childFile.Name.ToLowerInvariant() == PACKAGEJSON)
                 {
                     using (var fs = childFile.OpenRead())
                     using (var sr = new StreamReader(fs))
@@ -329,7 +385,14 @@ namespace Appalachia.CI.Integration.Repositories
                 }
             }
 
-            return new RepositoryDirectoryMetadata(directory, git, assets, data, src, package);
+            var result =  Create(directory, git, asset, data, src, package);
+
+            if (result.assemblies == null)
+            {
+                result.assemblies = new List<AssemblyDefinitionMetadata>();
+            }
+
+            return result;
         }
 
         public static RepositoryDirectoryMetadata Empty()

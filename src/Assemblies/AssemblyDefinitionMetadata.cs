@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Appalachia.CI.Integration;
 using Appalachia.CI.Integration.Repositories;
 using Newtonsoft.Json;
 using UnityEditor;
@@ -14,9 +13,11 @@ namespace Appalachia.CI.Integration.Assemblies
     [Serializable]
     public class AssemblyDefinitionMetadata : IComparable<AssemblyDefinitionMetadata>, IComparable
     {
-        public AssemblyDefinitionMetadata(string path)
+        private static Dictionary<string, AssemblyDefinitionMetadata> _instances;
+        
+            
+        private AssemblyDefinitionMetadata()
         {
-            Initialize(path);
         }
 
         
@@ -175,6 +176,27 @@ namespace Appalachia.CI.Integration.Assemblies
             return string.Compare(path, other.path, StringComparison.Ordinal);
         }
 
+        public static AssemblyDefinitionMetadata CreateNew(string path)
+        {
+            if (_instances == null)
+            {
+                _instances = new Dictionary<string, AssemblyDefinitionMetadata>();
+            }
+
+            if (_instances.ContainsKey(path))
+            {
+                return _instances[path];
+            }
+
+            var newInstance = new AssemblyDefinitionMetadata();
+
+            newInstance.Initialize(path);
+
+            _instances.Add(path, newInstance);
+
+            return newInstance;
+        }
+        
         public void Initialize(string assemblyDefinitionPath)
         {
             if (_partExclusions == null)
@@ -296,7 +318,7 @@ namespace Appalachia.CI.Integration.Assemblies
             SaveFile(testFile, reimport);
         }
 
-        public void ConvertToGuidReferences(bool testFile, bool reimport)
+        public void ConvertToGuidReferences(List<AssemblyDefinitionMetadata> allAssemblies, bool testFile, bool reimport)
         {
             var changed = false;
 
@@ -310,6 +332,20 @@ namespace Appalachia.CI.Integration.Assemblies
                 }
 
                 changed = true;
+
+                if (reference.assembly == null)
+                {
+                    for (var index = 0; index < allAssemblies.Count; index++)
+                    {
+                        var assemblyToCheck = allAssemblies[index];
+
+                        if (assemblyToCheck.assembly_current == reference.guid)
+                        {
+                            reference.assembly = assemblyToCheck;
+                            break;
+                        }
+                    }
+                }
                 
                 reference.guid = reference.assembly.guid;
                 referenceStrings[i] = reference.assembly.guid;
@@ -367,6 +403,7 @@ namespace Appalachia.CI.Integration.Assemblies
         public void SaveFile(bool testFile, bool reimport)
         {
             var settings = new JsonSerializerSettings {Formatting = Formatting.Indented};
+            settings.NullValueHandling = NullValueHandling.Include;
 
             var outputPath = path;
             var fileMode = FileMode.Truncate;
@@ -376,6 +413,8 @@ namespace Appalachia.CI.Integration.Assemblies
                 outputPath += ".test";
                 fileMode = FileMode.Create;
             }
+
+            assetModel.CheckBeforeWrite();
             
             using (var fs = File.Open(outputPath, fileMode))
             using (var sw = new StreamWriter(fs))
@@ -384,6 +423,8 @@ namespace Appalachia.CI.Integration.Assemblies
                 
                 sw.Write(text);
             }
+
+            EditorUtility.SetDirty(asset);
 
             if (reimport)
             {
