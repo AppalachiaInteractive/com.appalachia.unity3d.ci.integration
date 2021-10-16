@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using System.IO;
 using Appalachia.CI.Integration.Extensions;
+using Appalachia.CI.Integration.FileSystem;
 using Appalachia.CI.Integration.Repositories;
 using UnityEngine;
 
@@ -11,14 +11,14 @@ namespace Appalachia.CI.Integration
         public const string ThirdPartyFolder = "Third-Party";
         public const string ThirdPartyDataFolder = ThirdPartyFolder + "/Data";
         private static Dictionary<string, RepositoryDirectoryMetadata> _assetRepoLookup;
-        private static Dictionary<DirectoryInfo, RepositoryDirectoryMetadata> _repoDirectoryLookup;
+        private static Dictionary<AppaDirectoryInfo, RepositoryDirectoryMetadata> _repoDirectoryLookup;
 
         private static string _assetDirectoryPath;
-        private static DirectoryInfo _assetDirectoryInfo;
+        private static AppaDirectoryInfo _assetAppaDirectory;
         private static Dictionary<string, string> _thirdPartyAssetDirectoryPath;
-        private static Dictionary<string, DirectoryInfo> _thirdPartyAssetDirectoryInfo;
+        private static Dictionary<string, AppaDirectoryInfo> _thirdPartyAssetAppaDirectory;
         private static string _projectDirectoryPath;
-        private static DirectoryInfo _projectDirectoryInfo;
+        private static AppaDirectoryInfo _projectAppaDirectory;
 
         private static string _assetDirectoryPathRelative;
         private static Dictionary<string, string> _thirdPartyAssetDirectoryPathRelative;
@@ -41,7 +41,7 @@ namespace Appalachia.CI.Integration
                 return _assetRepoLookup[assetPath];
             }
 
-            var directoryInfo = new DirectoryInfo(assetPath);
+            var directoryInfo = new AppaDirectoryInfo(assetPath);
 
             while (!directoryInfo.HasSiblingDirectory(".git", out _))
             {
@@ -55,7 +55,7 @@ namespace Appalachia.CI.Integration
 
             if (_repoDirectoryLookup == null)
             {
-                _repoDirectoryLookup = new Dictionary<DirectoryInfo, RepositoryDirectoryMetadata>();
+                _repoDirectoryLookup = new Dictionary<AppaDirectoryInfo, RepositoryDirectoryMetadata>();
             }
 
             var rootDirectory = directoryInfo.Parent;
@@ -84,15 +84,15 @@ namespace Appalachia.CI.Integration
             return _assetDirectoryPath;
         }
 
-        public static DirectoryInfo GetAssetsDirectoryInfo()
+        public static AppaDirectoryInfo GetAssetsAppaDirectory()
         {
-            if (_assetDirectoryInfo != null)
+            if (_assetAppaDirectory != null)
             {
-                return _assetDirectoryInfo;
+                return _assetAppaDirectory;
             }
 
-            _assetDirectoryInfo = new DirectoryInfo(GetAssetsDirectoryPath());
-            return _assetDirectoryInfo;
+            _assetAppaDirectory = new AppaDirectoryInfo(GetAssetsDirectoryPath());
+            return _assetAppaDirectory;
         }
 
         public static string GetThirdPartyAssetsDirectoryPath(string partyName)
@@ -108,8 +108,9 @@ namespace Appalachia.CI.Integration
             }
 
             var basePath = GetAssetsDirectoryPath();
-            var thirdPartyPath = Path.Combine(basePath, ThirdPartyDataFolder, partyName).CleanFullPath();
-            var thirdPartyInfo = new DirectoryInfo(thirdPartyPath);
+            var thirdPartyPath = AppaPath.Combine(basePath, ThirdPartyDataFolder, partyName).CleanFullPath();
+            var thirdPartyInfo = new AppaDirectoryInfo(thirdPartyPath);
+            
             if (!thirdPartyInfo.Exists)
             {
                 thirdPartyInfo.Create();
@@ -120,22 +121,22 @@ namespace Appalachia.CI.Integration
             return thirdPartyPath;
         }
 
-        public static DirectoryInfo GetThirdPartyAssetsDirectoryInfo(string partyName)
+        public static AppaDirectoryInfo GetThirdPartyAssetsAppaDirectory(string partyName)
         {
-            if (_thirdPartyAssetDirectoryInfo == null)
+            if (_thirdPartyAssetAppaDirectory == null)
             {
-                _thirdPartyAssetDirectoryInfo = new Dictionary<string, DirectoryInfo>();
+                _thirdPartyAssetAppaDirectory = new Dictionary<string, AppaDirectoryInfo>();
             }
             
-            if (_thirdPartyAssetDirectoryInfo.ContainsKey(partyName))
+            if (_thirdPartyAssetAppaDirectory.ContainsKey(partyName))
             {
-                return _thirdPartyAssetDirectoryInfo[partyName];
+                return _thirdPartyAssetAppaDirectory[partyName];
             }
 
             var thirdParty = GetThirdPartyAssetsDirectoryPath(partyName);
 
-            var thirdPartyInfo = new DirectoryInfo(thirdParty);
-            _thirdPartyAssetDirectoryInfo.Add(partyName, thirdPartyInfo);
+            var thirdPartyInfo = new AppaDirectoryInfo(thirdParty);
+            _thirdPartyAssetAppaDirectory.Add(partyName, thirdPartyInfo);
 
             if (!thirdPartyInfo.Exists)
             {
@@ -180,8 +181,8 @@ namespace Appalachia.CI.Integration
             }
 
             var basePath = GetAssetsDirectoryPathRelative();
-            var thirdPartyPath = Path.Combine(basePath, ThirdPartyDataFolder, partyName).CleanFullPath();
-            var thirdPartyInfo = new DirectoryInfo(thirdPartyPath);
+            var thirdPartyPath = AppaPath.Combine(basePath, ThirdPartyDataFolder, partyName).CleanFullPath();
+            var thirdPartyInfo = new AppaDirectoryInfo(thirdPartyPath);
             
             if (!thirdPartyInfo.Exists)
             {
@@ -202,39 +203,6 @@ namespace Appalachia.CI.Integration
 
             _projectDirectoryPathRelative = string.Empty;
             return _projectDirectoryPathRelative;
-        }
-
-
-
-        public static bool HasSiblingDirectory(
-            this DirectoryInfo thisdir,
-            string name,
-            out DirectoryInfo siblingDirectory)
-        {
-            foreach (var sibling in thisdir.Parent.GetDirectories())
-            {
-                if (sibling.Name == name)
-                {
-                    siblingDirectory = sibling;
-                    return true;
-                }
-            }
-
-            siblingDirectory = null;
-            return false;
-        }
-
-        public static bool HasSubDirectory(this DirectoryInfo parentDir, string name)
-        {
-            foreach (var child in parentDir.GetDirectories())
-            {
-                if (child.Name == name)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 }

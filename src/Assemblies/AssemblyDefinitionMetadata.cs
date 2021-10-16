@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
+using Appalachia.CI.Integration.Assets;
+using Appalachia.CI.Integration.FileSystem;
 using Appalachia.CI.Integration.Repositories;
 using Newtonsoft.Json;
 using UnityEditor;
@@ -59,11 +60,14 @@ namespace Appalachia.CI.Integration.Assemblies
              (root_namespace_current == root_namespace_ideal));
         public bool DoAllNamesMatch => !readOnly && DoesFileNameMatch && DoesAssemblyMatch && DoesNamespaceMatch;
 
+        public bool ShouldUpdateNames => !DoAllNamesMatch;
         public bool AnyIssues =>
-            !DoAllNamesMatch ||
+            ShouldUpdateNames ||
             ShouldSortReferences ||
             HasInvalidAssemblies ||
-            !DoesUseGuidReferences;
+            DoesUseNameReferences;
+
+        public bool DoesUseNameReferences => !DoesUseGuidReferences;
         
         public bool DoesUseGuidReferences
         {
@@ -109,7 +113,7 @@ namespace Appalachia.CI.Integration.Assemblies
                         return false;
                     }
                     
-                    for (var i = 0; i < references.Count - 1; i++)
+                    for (var i = 0; i < (references.Count - 1); i++)
                     {
                         var ref1 = references[i];
                         var ref2 = references[i + 1];
@@ -163,6 +167,38 @@ namespace Appalachia.CI.Integration.Assemblies
                 return 1;
             }
 
+            void GetMatches(string name, out bool isAppalachiaMatch, out bool isUnityMatch)
+            {
+                isAppalachiaMatch = name.StartsWith("Appalachia");
+                isUnityMatch = name.StartsWith("Unity") ||
+                               name.StartsWith("com.unity") ||
+                               name.StartsWith("TextMeshPro") ||
+                               name.StartsWith("Cinemachine");
+            }
+
+            GetMatches(assembly_current, out var appalachiaMatch, out var unityMatch);
+            GetMatches(other.assembly_current, out var otherAppalachiaMatch, out var otherUnityMatch);
+
+            if (appalachiaMatch && !otherAppalachiaMatch)
+            {
+                return -1;
+            }
+
+            if (!appalachiaMatch && otherAppalachiaMatch)
+            {
+                return 1;
+            }
+
+            if (unityMatch && !otherUnityMatch)
+            {
+                return -1;
+            }
+
+            if (!unityMatch && otherUnityMatch)
+            {
+                return 1;
+            }
+            
             var assemblyCurrentComparison = string.Compare(
                 assembly_current,
                 other.assembly_current,
@@ -207,11 +243,11 @@ namespace Appalachia.CI.Integration.Assemblies
             readOnly = !assemblyDefinitionPath.StartsWith("Assets");
 
             path = assemblyDefinitionPath;
-            guid = AssemblyDefinitionModel.GUID_PREFIX + AssetDatabase.AssetPathToGUID(path);
-            filename_current = Path.GetFileName(assemblyDefinitionPath);
+            guid = AssemblyDefinitionModel.GUID_PREFIX + AssetDatabaseManager.AssetPathToGUID(path);
+            filename_current = AppaPath.GetFileName(assemblyDefinitionPath);
 
             importer = (AssemblyDefinitionImporter) AssetImporter.GetAtPath(assemblyDefinitionPath);
-            asset = AssetDatabase.LoadAssetAtPath<AssemblyDefinitionAsset>(assemblyDefinitionPath);
+            asset = AssetDatabaseManager.LoadAssetAtPath<AssemblyDefinitionAsset>(assemblyDefinitionPath);
             repository = ProjectLocations.GetAssetRepository(path);
             references = new List<AssemblyDefinitionReferenceMetadata>();
             referenceStrings = new List<string>();
@@ -223,7 +259,7 @@ namespace Appalachia.CI.Integration.Assemblies
 
             _asmdefNameBuilder.Clear();
 
-            var asmDefDirectory = Path.GetDirectoryName(assemblyDefinitionPath).Replace("\\", "/");
+            var asmDefDirectory = AppaPath.GetDirectoryName(assemblyDefinitionPath).Replace("\\", "/");
 
             var parts = asmDefDirectory.Split('/');
 
@@ -272,7 +308,7 @@ namespace Appalachia.CI.Integration.Assemblies
 
             if (!DoesFileNameMatch)
             {
-                AssetDatabase.RenameAsset(path, filename_ideal);
+                AssetDatabaseManager.RenameAsset(path, filename_ideal);
                 return;
             }
             
@@ -318,7 +354,7 @@ namespace Appalachia.CI.Integration.Assemblies
             SaveFile(testFile, reimport);
         }
 
-        public void ConvertToGuidReferences(List<AssemblyDefinitionMetadata> allAssemblies, bool testFile, bool reimport)
+        public void ConvertToGuidReferences(IList<AssemblyDefinitionMetadata> allAssemblies, bool testFile, bool reimport)
         {
             var changed = false;
 
@@ -406,29 +442,23 @@ namespace Appalachia.CI.Integration.Assemblies
             settings.NullValueHandling = NullValueHandling.Include;
 
             var outputPath = path;
-            var fileMode = FileMode.Truncate;
             
             if (testFile)
             {
                 outputPath += ".test";
-                fileMode = FileMode.Create;
             }
 
             assetModel.CheckBeforeWrite();
             
-            using (var fs = File.Open(outputPath, fileMode))
-            using (var sw = new StreamWriter(fs))
-            {
-                var text = JsonConvert.SerializeObject(assetModel, settings);
-                
-                sw.Write(text);
-            }
-
+            var text = JsonConvert.SerializeObject(assetModel, settings);
+            
+            AppaFile.WriteAllText(outputPath, text);
+            
             EditorUtility.SetDirty(asset);
 
             if (reimport)
             {
-                AssetDatabase.ImportAsset(outputPath);
+                AssetDatabaseManager.ImportAsset(outputPath);
             }
         }
         

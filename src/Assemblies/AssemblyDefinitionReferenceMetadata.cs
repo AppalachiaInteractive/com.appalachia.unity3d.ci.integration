@@ -23,7 +23,7 @@ namespace Appalachia.CI.Integration.Assemblies
             {
                 return 1;
             }
-
+            
             return Comparer<AssemblyDefinitionMetadata>.Default.Compare(assembly, other.assembly);
         }
 

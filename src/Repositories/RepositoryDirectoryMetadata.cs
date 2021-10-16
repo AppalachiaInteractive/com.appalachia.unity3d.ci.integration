@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using Appalachia.CI.Integration.Assemblies;
-using Appalachia.CI.Integration.Extensions;
+using Appalachia.CI.Integration.FileSystem;
 using Newtonsoft.Json.Linq;
 
 namespace Appalachia.CI.Integration.Repositories
@@ -12,31 +10,30 @@ namespace Appalachia.CI.Integration.Repositories
     [Serializable]
     public class RepositoryDirectoryMetadata : IEquatable<RepositoryDirectoryMetadata>
     {
-        private static Dictionary<string, RepositoryDirectoryMetadata> _instances;
-        
         private const string GIT = ".git";
         private const string DATA = "data";
         private const string SRC = "src";
         private const string ASSET = "asset";
-        private const string CONFIG = ".config";
+        private const string CONFIG = "config";
         private const string VERSION = "version";
         private const string URL = "url";
         private const string PACKAGEJSON = "package.json";
+        private static Dictionary<string, RepositoryDirectoryMetadata> _instances;
 
         public List<AssemblyDefinitionMetadata> assemblies;
 
-        private DirectoryInfo _assetsDirectory;
+        private AppaDirectoryInfo _assetsDirectory;
 
-        private DirectoryInfo _dataDirectory;
+        private AppaDirectoryInfo _dataDirectory;
 
-        private DirectoryInfo _gitDirectory;
+        private AppaDirectoryInfo _gitDirectory;
         private string _packageVersion;
 
         private string _repoName;
 
-        private DirectoryInfo _srcDirectory;
+        private AppaDirectoryInfo _srcDirectory;
         public JObject packageJson;
-        public DirectoryInfo root;
+        public AppaDirectoryInfo root;
 
         private RepositoryDirectoryMetadata()
         {
@@ -44,11 +41,11 @@ namespace Appalachia.CI.Integration.Repositories
         }
 
         private RepositoryDirectoryMetadata(
-            DirectoryInfo root,
-            DirectoryInfo gitDirectory,
-            DirectoryInfo assetsDirectory,
-            DirectoryInfo dataDirectory,
-            DirectoryInfo srcDirectory,
+            AppaDirectoryInfo root,
+            AppaDirectoryInfo gitDirectory,
+            AppaDirectoryInfo assetsDirectory,
+            AppaDirectoryInfo dataDirectory,
+            AppaDirectoryInfo srcDirectory,
             JObject packageJson)
         {
             this.root = root;
@@ -59,7 +56,8 @@ namespace Appalachia.CI.Integration.Repositories
             this.packageJson = packageJson;
             assemblies = new List<AssemblyDefinitionMetadata>();
         }
-        public DirectoryInfo gitDirectory
+
+        public AppaDirectoryInfo gitDirectory
         {
             get
             {
@@ -70,7 +68,7 @@ namespace Appalachia.CI.Integration.Repositories
                         return null;
                     }
 
-                    _gitDirectory = new DirectoryInfo(Path.Combine(root.FullName, GIT));
+                    _gitDirectory = new AppaDirectoryInfo(AppaPath.Combine(root.FullPath, GIT));
                 }
 
                 return _gitDirectory;
@@ -78,7 +76,7 @@ namespace Appalachia.CI.Integration.Repositories
             set => _gitDirectory = value;
         }
 
-        public DirectoryInfo assetsDirectory
+        public AppaDirectoryInfo assetsDirectory
         {
             get
             {
@@ -89,7 +87,8 @@ namespace Appalachia.CI.Integration.Repositories
                         return null;
                     }
 
-                    _assetsDirectory = new DirectoryInfo(Path.Combine(root.FullName, ASSET));
+                    _assetsDirectory =
+                        new AppaDirectoryInfo(AppaPath.Combine(root.FullPath, ASSET));
                 }
 
                 return _assetsDirectory;
@@ -97,7 +96,7 @@ namespace Appalachia.CI.Integration.Repositories
             set => _assetsDirectory = value;
         }
 
-        public DirectoryInfo dataDirectory
+        public AppaDirectoryInfo dataDirectory
         {
             get
             {
@@ -108,7 +107,7 @@ namespace Appalachia.CI.Integration.Repositories
                         return null;
                     }
 
-                    _dataDirectory = new DirectoryInfo(Path.Combine(root.FullName, DATA));
+                    _dataDirectory = new AppaDirectoryInfo(AppaPath.Combine(root.FullPath, DATA));
                 }
 
                 return _dataDirectory;
@@ -116,7 +115,7 @@ namespace Appalachia.CI.Integration.Repositories
             set => _dataDirectory = value;
         }
 
-        public DirectoryInfo srcDirectory
+        public AppaDirectoryInfo srcDirectory
         {
             get
             {
@@ -127,7 +126,7 @@ namespace Appalachia.CI.Integration.Repositories
                         return null;
                     }
 
-                    _srcDirectory = new DirectoryInfo(Path.Combine(root.FullName, SRC));
+                    _srcDirectory = new AppaDirectoryInfo(AppaPath.Combine(root.FullPath, SRC));
                 }
 
                 return _srcDirectory;
@@ -151,14 +150,7 @@ namespace Appalachia.CI.Integration.Repositories
 
                     var repoConfigStrings = new List<string>();
 
-                    using (var fs = repoConfig.OpenRead())
-                    using (var sr = new StreamReader(fs))
-                    {
-                        while (!sr.EndOfStream)
-                        {
-                            repoConfigStrings.Add(sr.ReadLine());
-                        }
-                    }
+                    repoConfigStrings.AddRange(repoConfig.ReadAllLines());
 
                     foreach (var repoConfigString in repoConfigStrings)
                     {
@@ -220,19 +212,19 @@ namespace Appalachia.CI.Integration.Repositories
                 return true;
             }
 
-            return Equals(root?.FullName,         other.root?.FullName) &&
-                   Equals(gitDirectory?.FullName, other.gitDirectory?.FullName) &&
-                   Equals(srcDirectory?.FullName, other.srcDirectory?.FullName);
+            return Equals(root?.FullPath,         other.root?.FullPath) &&
+                   Equals(gitDirectory?.FullPath, other.gitDirectory?.FullPath) &&
+                   Equals(srcDirectory?.FullPath, other.srcDirectory?.FullPath);
         }
 
         public override string ToString()
         {
             if (!HasPackage)
             {
-                return root.FullName;
+                return root.FullPath;
             }
 
-            return $"{root.FullName}: {PackageVersion}";
+            return $"{root.FullPath}: {PackageVersion}";
         }
 
         public override bool Equals(object obj)
@@ -259,11 +251,11 @@ namespace Appalachia.CI.Integration.Repositories
         {
             unchecked
             {
-                var hashCode = root != null ? root.FullName.GetHashCode() : 0;
+                var hashCode = root != null ? root.FullPath.GetHashCode() : 0;
                 hashCode = (hashCode * 397) ^
-                           (gitDirectory != null ? gitDirectory.FullName.GetHashCode() : 0);
+                           (gitDirectory != null ? gitDirectory.FullPath.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^
-                           (srcDirectory != null ? srcDirectory.FullName.GetHashCode() : 0);
+                           (srcDirectory != null ? srcDirectory.FullPath.GetHashCode() : 0);
                 return hashCode;
             }
         }
@@ -281,14 +273,13 @@ namespace Appalachia.CI.Integration.Repositories
         {
             return !Equals(left, right);
         }
-       
 
         public static RepositoryDirectoryMetadata Create(
-            DirectoryInfo root,
-            DirectoryInfo gitDirectory,
-            DirectoryInfo assetsDirectory,
-            DirectoryInfo dataDirectory,
-            DirectoryInfo srcDirectory,
+            AppaDirectoryInfo root,
+            AppaDirectoryInfo gitDirectory,
+            AppaDirectoryInfo assetsDirectory,
+            AppaDirectoryInfo dataDirectory,
+            AppaDirectoryInfo srcDirectory,
             JObject packageJson)
         {
             if (_instances == null)
@@ -296,9 +287,9 @@ namespace Appalachia.CI.Integration.Repositories
                 _instances = new Dictionary<string, RepositoryDirectoryMetadata>();
             }
 
-            if (_instances.ContainsKey(root.FullName))
+            if (_instances.ContainsKey(root.FullPath))
             {
-                return _instances[root.FullName];
+                return _instances[root.FullPath];
             }
 
             var newInstance = new RepositoryDirectoryMetadata(
@@ -310,34 +301,33 @@ namespace Appalachia.CI.Integration.Repositories
                 packageJson
             );
 
-            _instances.Add(root.FullName, newInstance);
+            _instances.Add(root.FullPath, newInstance);
 
             return newInstance;
         }
 
-        
         public static RepositoryDirectoryMetadata FromRootPath(string path)
         {
-            var directory = new DirectoryInfo(path);
+            var directory = new AppaDirectoryInfo(path);
             return FromRoot(directory);
         }
 
-        public static RepositoryDirectoryMetadata FromRoot(DirectoryInfo directory)
+        public static RepositoryDirectoryMetadata FromRoot(AppaDirectoryInfo directory)
         {
             if (_instances == null)
             {
                 _instances = new Dictionary<string, RepositoryDirectoryMetadata>();
             }
 
-            if (_instances.ContainsKey(directory.FullName))
+            if (_instances.ContainsKey(directory.FullPath))
             {
-                return _instances[directory.FullName];
+                return _instances[directory.FullPath];
             }
-            
+
             var childDirectories = directory.GetDirectories();
 
             var foundGit = false;
-            DirectoryInfo git = null;
+            AppaDirectoryInfo git = null;
 
             for (var childIndex = 0; childIndex < childDirectories.Length; childIndex++)
             {
@@ -356,13 +346,13 @@ namespace Appalachia.CI.Integration.Repositories
                 return Empty();
             }
 
-            DirectoryInfo asset;
-            DirectoryInfo data;
-            DirectoryInfo src;
+            AppaDirectoryInfo asset;
+            AppaDirectoryInfo data;
+            AppaDirectoryInfo src;
 
-            asset = new DirectoryInfo(Path.Combine(directory.FullName, ASSET));
-            data = new DirectoryInfo(Path.Combine(directory.FullName,  DATA));
-            src = new DirectoryInfo(Path.Combine(directory.FullName,   SRC));
+            asset = new AppaDirectoryInfo(AppaPath.Combine(directory.FullPath, ASSET));
+            data = new AppaDirectoryInfo(AppaPath.Combine(directory.FullPath,  DATA));
+            src = new AppaDirectoryInfo(AppaPath.Combine(directory.FullPath,   SRC));
 
             JObject package = null;
 
@@ -374,18 +364,13 @@ namespace Appalachia.CI.Integration.Repositories
 
                 if (childFile.Name.ToLowerInvariant() == PACKAGEJSON)
                 {
-                    using (var fs = childFile.OpenRead())
-                    using (var sr = new StreamReader(fs))
-                    {
-                        var text = sr.ReadToEnd();
-
-                        package = JObject.Parse(text);
-                        break;
-                    }
+                    var text = AppaFile.ReadAllText(childFile.FullPath);
+                    package = JObject.Parse(text);
+                    break;
                 }
             }
 
-            var result =  Create(directory, git, asset, data, src, package);
+            var result = Create(directory, git, asset, data, src, package);
 
             if (result.assemblies == null)
             {

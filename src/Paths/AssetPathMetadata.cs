@@ -1,6 +1,7 @@
 using System;
-using System.IO;
+using Appalachia.CI.Integration.Assets;
 using Appalachia.CI.Integration.Extensions;
+using Appalachia.CI.Integration.FileSystem;
 using UnityEditor;
 using Object = UnityEngine.Object;
 
@@ -18,8 +19,8 @@ namespace Appalachia.CI.Integration.Paths
         public Object parentDirectory;
         public string parentDirectoryRelative;
         public AssetPathMetadataType pathType;
-        public FileSystemInfo assetInfo;
-        public DirectoryInfo parentDirectoryInfo;
+        public AppaFileSystemInfo assetInfo;
+        public AppaDirectoryInfo parentAppaDirectory;
 
         public AssetPathMetadata(
             string rp,
@@ -30,25 +31,19 @@ namespace Appalachia.CI.Integration.Paths
 
             if (this.isDirectory)
             {
-                var ai = new DirectoryInfo(rp);
-                parentDirectoryInfo = ai.Parent;
-                assetInfo = ai;
+                assetInfo = new AppaDirectoryInfo(rp);
             }
             else
             {
-                var ai = new FileInfo(rp);
-                parentDirectoryInfo = ai.Directory;
-                assetInfo = ai;
+                assetInfo = new AppaFileInfo(rp);
             }
 
-            absolutePath = assetInfo.FullName;
-            name = Path.GetFileName(absolutePath);
+            parentAppaDirectory = assetInfo.Parent;
+            absolutePath = assetInfo.FullPath;
+            name = assetInfo.Name;
+            doesExist = assetInfo.Exists;
 
-            doesExist = this.isDirectory
-                ? Directory.Exists(absolutePath)
-                : File.Exists(absolutePath);
-
-            var parentFullPath = parentDirectoryInfo.FullName;
+            var parentFullPath = parentAppaDirectory.FullPath;
             var cleanParentFullPath = parentFullPath.CleanFullPath();
 
             var cleanDataPath = ProjectLocations.GetAssetsDirectoryPath().CleanFullPath();
@@ -58,10 +53,10 @@ namespace Appalachia.CI.Integration.Paths
 
             parentDirectoryRelative = parentDirectoryRelative.CleanFullPath();
 
-            if (AssetDatabase.IsValidFolder(parentDirectoryRelative))
+            if (AssetDatabaseManager.IsValidFolder(parentDirectoryRelative))
             {
-                var type = AssetDatabase.GetMainAssetTypeAtPath(parentDirectoryRelative);
-                parentDirectory = AssetDatabase.LoadAssetAtPath(parentDirectoryRelative, type);
+                var type = AssetDatabaseManager.GetMainAssetTypeAtPath(parentDirectoryRelative);
+                parentDirectory = AssetDatabaseManager.LoadAssetAtPath(parentDirectoryRelative, type);
             }
 
             relativePath = absolutePath.CleanFullPath();
@@ -75,8 +70,8 @@ namespace Appalachia.CI.Integration.Paths
 
             if (parentDirectory != null)
             {
-                var type = AssetDatabase.GetMainAssetTypeAtPath(relativePath);
-                asset = AssetDatabase.LoadAssetAtPath(relativePath, type);
+                var type = AssetDatabaseManager.GetMainAssetTypeAtPath(relativePath);
+                asset = AssetDatabaseManager.LoadAssetAtPath(relativePath, type);
             }
 
             if (pathType == AssetPathMetadataType.None)
@@ -103,7 +98,7 @@ namespace Appalachia.CI.Integration.Paths
                 return null;
             }
 
-            var path = AssetDatabase.GetAssetPath(script);
+            var path = AssetDatabaseManager.GetAssetPath(script);
 
             var result = new AssetPathMetadata(path, false, AssetPathMetadataType.Script);
             return result;
@@ -111,28 +106,18 @@ namespace Appalachia.CI.Integration.Paths
 
         public void CreateDirectoryStructure()
         {
-            var di = new DirectoryInfo(absolutePath);
-
-            if (di.Exists)
-            {
-                doesExist = true;
-                return;
-            }
-
-            di.Create();
-
-            AssetDatabase.ImportAsset(relativePath);
+            AssetDatabaseManager.CreateFolder(relativePath);
             doesExist = true;
         }
 
         public string[] GetFileLines()
         {
-            return File.ReadAllLines(absolutePath);
+            return AppaFile.ReadAllLines(absolutePath);
         }
 
         public void WriteFileLines(string[] lines)
         {
-            File.WriteAllLines(absolutePath, lines);
+            AppaFile.WriteAllLines(absolutePath, lines);
         }
     }
 }
