@@ -12,6 +12,14 @@
 ## Releasing
 | Hash | Date | Author | Changes |
 |------|------|--------|---------|
+| ac6a82d2f561a3abe40b52a450baca59930c8488 | 2021-10-16 | Chris Schubert | UI project cleanup and integration completed |
+| 10216e10b1d333ef30a27aeef907322ef70a44e2 | 2021-10-16 | Chris Schubert | More project cleanup and refactoring |
+| 25301c69b37287240de68cea674a14fd83b15ff5 | 2021-10-12 | Chris Schubert | Adding properties to move from assembly to repository |
+
+
+ ## Tag: `v0.1.8`
+| Hash | Date | Author | Changes |
+|------|------|--------|---------|
 | 15320d756ac13ca9ca58e6582f5d3564a21fdeb0 | 2021-10-11 | Chris Schubert | Moving assemblies over to directory, not subdirectory |
 
 
